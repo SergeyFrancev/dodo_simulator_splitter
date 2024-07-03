@@ -17,3 +17,10 @@ Cargo.lock
 # Added by cargo
 
 /target
+
+.DS_Store
+
+/data
+/test
+
+/.vscode
