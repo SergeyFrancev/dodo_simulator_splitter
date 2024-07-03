@@ -1,27 +1,32 @@
-use dodo_simulator_splitter::{get_executable_directory, get_ranges, get_sources, create_part, cut_rows};
+use dodo_simulator_splitter::{
+    create_part, cut_rows, get_executable_directory, get_ranges, get_sources, CompanyDay,
+};
+use rayon::prelude::*;
+
+fn process_path(src_file: &std::path::PathBuf, range: &CompanyDay) {
+    println!(
+        "{}:{} | {}-{} [{}]",
+        range.date, range.company, range.from, range.to, range.max
+    );
+    let part_path = create_part(&src_file, range.company.clone(), range.date.clone());
+
+    cut_rows(&part_path, range.from, range.to, range.max);
+}
+
+fn process_file(path: &String) {
+    let src_dir = get_executable_directory().expect("Invalid source directory");
+    let file_path = src_dir.join(&path);
+    println!("*{}", file_path.display());
+
+    // Calc range for every file
+    get_ranges(&file_path)
+        .par_iter()
+        .for_each(|range| process_path(&file_path, range));
+}
 
 fn main() {
-    // Remove and recreate 'result' dir
-    // let _ = dodo_simulator_splitter::recreate_result_dir();
-
-    // Get three files
-    let src_dir = get_executable_directory().expect("Invalid source directory");
-    let sources = get_sources().expect("Invalid source files");
-
-    // Read every file and copy to 'result' dir
-    for source in sources {
-        let file_path = src_dir.join(&source);
-        println!("*{}", file_path.display());
-
-        // Calc range for every file
-        let ranges = get_ranges(&file_path);
-
-        // Create part for every range
-        for range in ranges {
-            println!("{}:{} | {}-{} [{}]", range.date, range.company, range.from, range.to, range.max);
-            let part_path = create_part(&file_path, range.company, range.date);
-
-            cut_rows(&part_path, range.from, range.to, range.max);
-        }
-    }
+    get_sources()
+        .expect("Invalid source files")
+        .par_iter()
+        .for_each(process_file);
 }
